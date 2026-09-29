@@ -90,3 +90,11 @@ Taskbar icon follow-up: added a shared multi-resolution purple microphone ICO, e
 Hardware-free tests verify unavailable microphones, interrupted callbacks, disconnection, CUDA fallback, model errors and lifecycle failures with injected boundaries. Actual physical hot-unplug, Windows privacy toggles, missing CUDA DLLs on a clean PC, multi-monitor DPI transitions and an all-day soak still require the README manual procedure. Background native CUDA calls cannot be cancelled mid-kernel; their late results are suppressed on shutdown.
 
 Timings are individual development observations, not statistical latency guarantees. CPU throughput and language choice differ. The overlapping strategy intentionally allows provisional text to change and can still inherit Whisper's recognition errors.
+
+## Editable transcript follow-up
+
+The transcript accepts plain-text typing, paste, deletion, undo and redo after Finish. Copy uses the edited text, and the next recording preserves those corrections. Editing is temporarily locked during capture and finalization so live Whisper revisions cannot overwrite a concurrent edit.
+
+Hardware-free suite: **55 passed, 1 real-inference test skipped**. Tests exercise editing, undo/redo, deletion to the empty state, Copy, preserving corrections across recordings and locking input while busy. Light and dark edited-state screenshots were rendered and visually inspected in `artifacts/editable-ui/`.
+
+The rebuilt executable was launched and its actual Windows transcript field accepted an edit through UI Automation. The existing application was then closed cleanly, replaced and reopened; its 215-character transcript was restored and read back exactly, without changing the clipboard.

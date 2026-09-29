@@ -40,6 +40,8 @@ Use it for desktop dictation, drafting emails, capturing ideas, writing notes an
 3. Press **Finish**. Whisper Desk reconciles the remaining audio into the final transcript.
 4. Press **Copy text** and paste it wherever you need it.
 
+Click the transcript to correct words, type, paste or delete text after Finish. Undo and redo work normally, and Copy includes your edits. Editing is temporarily locked during recording and finalization so live transcription cannot overwrite your corrections.
+
 Record again to add another paragraph. Earlier text stays in the window until you press **Clear**. Transcripts are kept in memory for the current window; copy anything you want to keep before closing the app.
 
 ## Get started on Windows 11

@@ -23,6 +23,8 @@ The default client area is 540 × 770 logical pixels, with a 440 × 560 minimum.
 
 ## Fresh environment
 
+The transcript is editable whenever the app is not recording or finalizing. Plain-text typing/paste, deletion and undo/redo update Copy/Clear and the empty state immediately. Starting a new recording snapshots the edited text; live revisions affect only the new tail. Editing is locked while that tail is being generated, so keyboard input cannot be silently overwritten by Whisper.
+
 Install 64-bit Python **3.12** and run from the repository directory:
 
 ```powershell

@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
         self.final_status = "Ready for your voice"
         self._copied = False
         self._recording_prefix = ""
+        self._setting_text = False
         self.setWindowTitle("Whisper Desk")
         self.setWindowIcon(application_icon())
         self.resize(540, 770)
@@ -124,7 +125,7 @@ class MainWindow(QMainWindow):
         card_layout.addSpacing(14)
         self.text = QTextEdit()
         self.text.setObjectName("transcript")
-        self.text.setReadOnly(True)
+        self.text.setAcceptRichText(False)
         self.text.setFrameShape(QFrame.Shape.NoFrame)
         self.text.setMinimumHeight(44)
         self.text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -172,6 +173,7 @@ class MainWindow(QMainWindow):
         self.controller.changed.connect(self.apply_theme)
         self.apply_theme(self.controller.theme)
         self.set_state(State.LOADING)
+        self.text.textChanged.connect(self._text_edited)
         # Start with keyboard focus on the primary action, without displaying a
         # focus ring until keyboard navigation actually requests one.
         self.record.setFocus()
@@ -305,6 +307,10 @@ class MainWindow(QMainWindow):
             self._recording_prefix = self.text.toPlainText().rstrip()
             self.text.verticalScrollBar().setValue(self.text.verticalScrollBar().maximum())
         self.state = state
+        editing_locked = state in (State.STARTING, State.RECORDING, State.FINALIZING, State.CLOSED)
+        self.text.setReadOnly(editing_locked)
+        self.text.setToolTip("Finish recording to edit the transcript." if editing_locked else
+                             "Edit your transcript here. Your changes are included when you copy.")
         active = state in (State.STARTING, State.RECORDING)
         self.record.setText("Finish" if active else "Finishing…" if state == State.FINALIZING else
                             "Loading…" if state == State.LOADING else "Record")
@@ -343,16 +349,31 @@ class MainWindow(QMainWindow):
         scrollbar = self.text.verticalScrollBar()
         at_bottom = scrollbar.value() >= scrollbar.maximum() - 4
         old_position = scrollbar.value()
-        self.text.setPlainText(text)
+        self._setting_text = True
+        try:
+            self.text.setPlainText(text)
+            cursor = QTextCursor(self.text.document())
+            cursor.select(QTextCursor.SelectionType.Document)
+            block = QTextBlockFormat()
+            block.setLineHeight(145, QTextBlockFormat.LineHeightTypes.ProportionalHeight.value)
+            cursor.mergeBlockFormat(block)
+            # Model rendering is not a user undo step.
+            self.text.document().clearUndoRedoStacks()
+        finally:
+            self._setting_text = False
         self.empty_hint.setVisible(not bool(text))
-        cursor = QTextCursor(self.text.document())
-        cursor.select(QTextCursor.SelectionType.Document)
-        block = QTextBlockFormat()
-        block.setLineHeight(145, QTextBlockFormat.LineHeightTypes.ProportionalHeight.value)
-        cursor.mergeBlockFormat(block)
         scrollbar.setValue(scrollbar.maximum() if at_bottom else old_position)
         self._reset_copy()
         self._actions()
+
+    def _text_edited(self):
+        if self._setting_text:
+            return
+        populated = bool(self.text.toPlainText())
+        self.empty_hint.setVisible(not populated)
+        self.final_status = "Edited" if populated else "Ready for your voice"
+        self._reset_copy()
+        self._status()
 
     def set_session_text(self, text):
         combined = "\n\n".join(part for part in (self._recording_prefix, text.strip()) if part)

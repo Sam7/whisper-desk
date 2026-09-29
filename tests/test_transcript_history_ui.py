@@ -80,3 +80,56 @@ def test_new_recording_and_final_keep_scroll_at_bottom(qtbot):
     assert scrollbar.value() == scrollbar.maximum()
     assert window.text.toPlainText().startswith("An earlier paragraph.")
 
+
+def test_edit_copy_undo_and_delete_update_controls(qtbot):
+    window = MainWindow(theme="dark")
+    qtbot.addWidget(window)
+    window.show()
+    window.set_state(State.READY)
+    assert not window.text.isReadOnly()
+    window.text.setFocus()
+    qtbot.keyClicks(window.text, "My corrected thought.")
+    assert not window.empty_hint.isVisible()
+    assert window.copy.isEnabled() and window.clear.isEnabled()
+    window.copy.click()
+    assert QApplication.clipboard().text() == "My corrected thought."
+    begin(window)
+    finish(window, "The recorded continuation.")
+    recorded = "My corrected thought.\n\nThe recorded continuation."
+    window.text.moveCursor(window.text.textCursor().MoveOperation.End)
+    qtbot.keyClicks(window.text, " Extra")
+    assert window.copy.text() == "Copy text"
+    window.text.undo()
+    assert window.text.toPlainText() == recorded
+    window.text.redo()
+    assert window.text.toPlainText() == recorded + " Extra"
+    window.text.selectAll()
+    qtbot.keyClick(window.text, Qt.Key.Key_Backspace)
+    assert window.empty_hint.isVisible()
+    assert not window.copy.isEnabled() and not window.clear.isEnabled()
+
+
+def test_edited_result_survives_next_recording_and_busy_input_is_safe(qtbot):
+    window = MainWindow(theme="light")
+    qtbot.addWidget(window)
+    window.show()
+    window.set_state(State.READY)
+    begin(window)
+    finish(window, "Wrong words.")
+    window.text.selectAll()
+    qtbot.keyClicks(window.text, "Corrected words.")
+    begin(window)
+    assert window.text.isReadOnly()
+    qtbot.keyClicks(window.text, "Do not overwrite my correction")
+    assert window.text.toPlainText() == "Corrected words."
+    window.handle(Event("text", "New provisional words"))
+    window.set_state(State.FINALIZING)
+    assert window.text.isReadOnly()
+    finish(window, "New final words.")
+    assert not window.text.isReadOnly()
+    expected = "Corrected words.\n\nNew final words."
+    assert window.text.toPlainText() == expected
+    window.copy.click()
+    assert QApplication.clipboard().text() == expected
+    window.clear.click()
+    assert window.text.toPlainText() == ""

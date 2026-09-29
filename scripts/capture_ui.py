@@ -34,6 +34,7 @@ CASES = [
     ("copied", State.READY, SAMPLE, 540, 770),
     ("append-recording", State.RECORDING, "A second thought is taking shape.", 540, 770),
     ("history-result", State.READY, SAMPLE + "\n\nA second thought worth keeping.", 540, 770),
+    ("edited", State.READY, SAMPLE, 540, 770),
 ]
 
 
@@ -91,6 +92,10 @@ def main():
         window.record.setDown(name == "pressed")
         if name == "copied":
             window.copy_text()
+        if name == "edited":
+            window.text.selectAll()
+            window.text.insertPlainText("A corrected thought. You can edit, paste and refine your words here.")
+            window.text.setFocus()
         if name == "append-recording":
             window.set_text(SAMPLE)
             window.set_state(State.READY)
