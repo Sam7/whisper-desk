@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whisper-desk"
+version = "0.1.0"
+description = "A small, local Windows voice transcription utility"
+requires-python = ">=3.12,<3.13"
+dependencies = ["PySide6>=6.8,<7", "faster-whisper>=1.2.1,<2", "sounddevice>=0.5,<0.6", "numpy>=2,<3", "scipy>=1.14,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "pytest-qt>=4.4,<5", "pyinstaller>=6,<7"]
+
+[project.scripts]
+whisper-desk = "whisper_desk.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+whisper_desk = ["assets/*.ico", "assets/*.png"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: real local Whisper inference (opt in with WHISPER_INTEGRATION=1)"]
+qt_api = "pyside6"
