@@ -1,5 +1,7 @@
 # WhisperDesk — Free, Private Offline Voice Transcription
 
+[![Latest release](https://img.shields.io/github/v/release/Sam7/whisper-desk?label=latest%20release)](https://github.com/Sam7/whisper-desk/releases/latest)
+
 **Turn your voice into text on your own computer. No cloud subscription, no account, no per-minute fees.**
 
 WhisperDesk is a free desktop speech-to-text app for **Windows 11**, powered by **OpenAI Whisper Turbo**. It delivers high-quality local audio transcription in a simple native interface: press Record, speak naturally, watch your words appear, and press Finish. Copy the text into your notes, emails, documents or favourite app.
@@ -111,7 +113,7 @@ winget install DotSam.WhisperDesk
 choco install whisperdesk
 ```
 
-Both packages use the exact versioned GitHub Release installer and verify its SHA-256. Package availability depends on the initial submissions being accepted by Microsoft's WinGet repository and the Chocolatey Community Repository.
+Both packages use the exact versioned GitHub Release installer and verify its SHA-256. Check the [WhisperDesk package page](https://community.chocolatey.org/packages/whisperdesk) on the [Chocolatey Community Repository](https://community.chocolatey.org/) for its listing and moderation status. A Chocolatey version in moderation is not available through normal package search or installation until it is approved. WinGet becomes available after Microsoft's initial manifest review and acceptance.
 
 Whisper Desk is an independent application using [OpenAI Whisper](https://github.com/openai/whisper) model weights and the [faster-whisper](https://github.com/SYSTRAN/faster-whisper) inference implementation.
 
