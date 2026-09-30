@@ -20,4 +20,7 @@ if ($status -eq 0) {
     throw "Could not safely determine the WinGet package registration status: $($listing -join ' ')"
 }
 
+# GitHub Actions' PowerShell wrapper exits with the last native command's status.
+# A 404 is expected before the one-time WinGet bootstrap, so clear that status.
+$global:LASTEXITCODE = 0
 Write-Output 'Release publishing credentials are ready.'

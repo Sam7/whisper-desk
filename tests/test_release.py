@@ -164,6 +164,7 @@ def test_release_workflow_is_tag_only_least_privilege_and_secrets_are_scoped():
     credential_check = (ROOT / "scripts/validate_release_secrets.ps1").read_text(encoding="utf-8")
     assert "CHOCOLATEY_API_KEY" in credential_check
     assert "WINGET_CREATE_GITHUB_TOKEN" in credential_check
+    assert "$global:LASTEXITCODE = 0" in credential_check
     winget_publisher = (ROOT / "scripts/publish_winget.ps1").read_text(encoding="utf-8")
     assert winget_publisher.count("2>&1") == 2
     assert "2>$null" not in winget_publisher
