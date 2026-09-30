@@ -171,7 +171,25 @@ def test_release_workflow_is_tag_only_least_privilege_and_secrets_are_scoped():
     publish_job = workflow.split("\n  publish:\n", 1)[1]
     assert "    env:" not in publish_job.splitlines()
     assert "REPOSITORY: ${{ github.repository }}" in workflow
+    assert "runs-on: windows-2025" in workflow
     assert ".\\scripts\\ensure_inno_setup.ps1" in workflow
     inno_setup = (ROOT / "scripts/ensure_inno_setup.ps1").read_text(encoding="utf-8")
     assert "is-6_7_3/innosetup-6.7.3.exe" in inno_setup
     assert "Get-AuthenticodeSignature" in inno_setup and "Pyrsys B\\.V\\." in inno_setup
+
+
+def test_release_recovery_is_manual_validated_and_reuses_immutable_artifacts():
+    workflow = (ROOT / ".github/workflows/recover-release.yml").read_text(encoding="utf-8")
+    validator = (ROOT / "scripts/validate_release_recovery.ps1").read_text(encoding="utf-8")
+    release_script = (ROOT / "scripts/publish_github_release.ps1").read_text(encoding="utf-8")
+    assert "workflow_dispatch:" in workflow
+    assert "source_run_id:" in workflow and "release_tag:" in workflow
+    assert "actions: read" in workflow and "contents: write" in workflow
+    assert "actions/download-artifact" in workflow and "run-id: ${{ inputs.source_run_id }}" in workflow
+    assert "Test and build versioned Windows installer" in validator
+    assert "current release tag no longer points to the validated source commit" in validator
+    assert "Get-FileHash -LiteralPath $installer" in validator
+    assert "Chocolatey package metadata, immutable installer URL, hash, or silent arguments" in validator
+    assert "Get-Content -LiteralPath $remoteChecksumFile -Raw -Encoding ascii" in release_script
+    assert ".Content.Trim()" not in release_script
+    assert "RELEASE_SOURCE_SHA" in release_script

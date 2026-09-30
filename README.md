@@ -48,13 +48,13 @@ Record again to add another paragraph. Earlier text stays in the window until yo
 
 The Windows installer handles Python, application dependencies, the Whisper Turbo model and NVIDIA GPU runtime libraries for you:
 
-1. Download **WhisperDesk-<version>-Setup.exe** from [GitHub Releases](https://github.com/Sam7/whisper-desk/releases) after the first tagged release, or install with Winget/Chocolatey when those listings are available. Choose GPU acceleration if you have compatible NVIDIA hardware.
+1. Download the versioned **WhisperDesk-<version>-Setup.exe** installer from [GitHub Releases](https://github.com/Sam7/whisper-desk/releases). Choose GPU acceleration if you have compatible NVIDIA hardware.
 2. Allow setup to download and verify the transcription files. GPU setup downloads approximately **3.44 GB** in total; CPU setup downloads approximately **1.62 GB**. Installation also needs space for extraction and staging; setup checks this first.
 3. Open **Whisper Desk** from the Start menu and speak. No separate Python, CUDA Toolkit or cuDNN installation is needed for the installed application.
 
 A compatible **NVIDIA graphics driver** is still required for GPU mode. Setup checks actual inference, offers CPU mode and explains driver problems. Windows microphone access must be enabled for desktop apps. Completed downloads are retained for retries; an interrupted individual file starts again.
 
-The release workflow produces a versioned installer, checksum and tested package-manager submissions from each pushed version tag. For local packaging instructions, see the [Windows installer guide](docs/windows-installer.md) and [release guide](docs/releases.md).
+The release workflow builds and tests each versioned installer before publishing it. Chocolatey submissions and, after the one-time WinGet registration is accepted, WinGet update pull requests are handled by the tagged release workflow. See the [release guide](docs/releases.md) for package commands and release details.
 
 The installer has been exercised through download, installation, upgrade, uninstall and reinstall, with offline CUDA transcription tested in both themes. Clean-machine release validation remains pending; see the [verification notes](docs/verification.md) for results and environment limits.
 

@@ -96,7 +96,7 @@ jobs:
   publish:
     name: Publish immutable release and package manager updates
     needs: build-and-validate
-    runs-on: windows-2022
+    runs-on: windows-2025
     permissions:
       contents: write
     timeout-minutes: 45
@@ -131,7 +131,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          .\scripts\publish_github_release.ps1 -ContextPath 'release-artifacts\build\release\release.json' -Installer "release-artifacts\dist\installer\${{ needs.build-and-validate.outputs.installer_name }}" -ChecksumFile "release-artifacts\dist\installer\${{ needs.build-and-validate.outputs.installer_name }}.sha256"
+          $release = Get-Content 'release-artifacts\build\release\release.json' -Raw | ConvertFrom-Json
+          $installer = "release-artifacts\dist\installer\$($release.installer_name)"
+          .\scripts\publish_github_release.ps1 -ContextPath 'release-artifacts\build\release\release.json' -Installer $installer -ChecksumFile "$installer.sha256"
 
       - name: Submit Chocolatey package
         shell: pwsh

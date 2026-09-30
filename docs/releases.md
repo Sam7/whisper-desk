@@ -30,6 +30,16 @@ The tag workflow validates the exact semantic-version format, runs the test suit
 
 The release scripts are safe to rerun for the same tag and commit: they verify the existing GitHub asset, checksum, and package metadata before skipping an already completed publication. A different commit or different bytes for a published version fails instead of replacing a versioned artifact. The workflow does not run package-manager publication for ordinary branch or pull-request CI.
 
+If the tag workflow's build-and-validate job succeeds but publication later fails, do not move or recreate the release tag. Use the manual recovery workflow with the original run ID and exact tag:
+
+```powershell
+gh workflow run "Recover validated release publication" --ref main `
+  -f source_run_id=36681391842 `
+  -f release_tag=v0.1.0
+```
+
+Recovery downloads the original validated artifact, confirms its build job succeeded, checks the current tag still points to that run's commit, and rechecks the installer and sidecar hashes plus package metadata before resuming the idempotent publish steps. Artifacts are retained for 10 days, so recover a failed publication promptly. This path does not rebuild or retarget an already-published version.
+
 Install after package submissions are available:
 
 ```powershell
