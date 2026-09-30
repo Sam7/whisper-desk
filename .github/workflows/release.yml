@@ -54,20 +54,7 @@ jobs:
 
       - name: Ensure Inno Setup is available
         shell: pwsh
-        run: |
-          $compiler = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
-          $releaseNotes = Join-Path (Split-Path -Parent $compiler) 'whatsnew.htm'
-          $versionMatch = if (Test-Path -LiteralPath $releaseNotes) {
-            [regex]::Match((Get-Content -LiteralPath $releaseNotes -Raw), '<a name="(?<version>[0-9]+\.[0-9]+\.[0-9]+)"')
-          } else { $null }
-          if (!$versionMatch -or $versionMatch.Groups['version'].Value -ne '6.7.3') {
-            choco install innosetup --version=6.7.3 --force --allow-downgrade --yes --no-progress
-            if ($LASTEXITCODE -ne 0) { throw 'Could not install the pinned Inno Setup compiler.' }
-          }
-          if (!(Test-Path -LiteralPath $compiler)) { throw 'Inno Setup compiler was not found.' }
-          $versionMatch = [regex]::Match((Get-Content -LiteralPath $releaseNotes -Raw), '<a name="(?<version>[0-9]+\.[0-9]+\.[0-9]+)"')
-          if (!$versionMatch.Success -or $versionMatch.Groups['version'].Value -ne '6.7.3') { throw 'The release installer must be compiled with Inno Setup 6.7.3.' }
-          & $compiler /?
+        run: .\scripts\ensure_inno_setup.ps1
 
       - name: Build application and installer from tag version
         shell: pwsh

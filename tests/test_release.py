@@ -158,4 +158,7 @@ def test_release_workflow_is_tag_only_least_privilege_and_secrets_are_scoped():
     publish_job = workflow.split("\n  publish:\n", 1)[1]
     assert "    env:" not in publish_job.splitlines()
     assert "REPOSITORY: ${{ github.repository }}" in workflow
-    assert "innosetup --version=6.7.3" in workflow
+    assert ".\\scripts\\ensure_inno_setup.ps1" in workflow
+    inno_setup = (ROOT / "scripts/ensure_inno_setup.ps1").read_text(encoding="utf-8")
+    assert "is-6_7_3/innosetup-6.7.3.exe" in inno_setup
+    assert "Get-AuthenticodeSignature" in inno_setup and "Pyrsys B\\.V\\." in inno_setup
