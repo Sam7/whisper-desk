@@ -7,6 +7,23 @@ import pytest
 from whisper_desk.config import Config
 from whisper_desk.models import State, Word
 from whisper_desk.session import SessionService
+from whisper_desk.installation import SetupRepairRequired
+
+
+def test_installed_model_failure_shows_repair_instruction():
+    class MissingModel:
+        def load(self):
+            raise SetupRepairRequired("Run the installer again to repair the model.")
+    events = []
+    service = SessionService(events.append, engine=MissingModel(), recorder=FakeRecorder())
+    try:
+        service.launch()
+        wait(lambda: service.state == State.ERROR)
+        assert not service.model_ready
+        assert [e.value for e in events if e.kind == "error"] == ["Run the installer again to repair the model."]
+    finally:
+        service.close()
+        service.join()
 
 
 def wait(predicate, timeout=3):

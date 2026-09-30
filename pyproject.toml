@@ -19,7 +19,7 @@ whisper-desk = "whisper_desk.app:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-whisper_desk = ["assets/*.ico", "assets/*.png"]
+whisper_desk = ["assets/*.ico", "assets/*.png", "assets/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

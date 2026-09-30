@@ -1,0 +1,164 @@
+name: Tagged Windows release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whisperdesk-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-validate:
+    name: Test and build versioned Windows installer
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+      REPOSITORY: ${{ github.repository }}
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      installer_name: ${{ steps.release.outputs.installer_name }}
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Validate tag and derive release metadata
+        id: release
+        shell: pwsh
+        run: |
+          python scripts/release_support.py context --tag $env:RELEASE_TAG --repository $env:REPOSITORY --output build/release/release.json --github-output
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag or repository validation failed.' }
+
+      - name: Install locked Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-lock.txt
+          python -m pip install --no-deps -e .
+
+      - name: Run automated tests
+        run: python -m pytest -q
+
+      - name: Ensure Inno Setup is available
+        shell: pwsh
+        run: |
+          $compiler = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          $releaseNotes = Join-Path (Split-Path -Parent $compiler) 'whatsnew.htm'
+          $versionMatch = if (Test-Path -LiteralPath $releaseNotes) {
+            [regex]::Match((Get-Content -LiteralPath $releaseNotes -Raw), '<a name="(?<version>[0-9]+\.[0-9]+\.[0-9]+)"')
+          } else { $null }
+          if (!$versionMatch -or $versionMatch.Groups['version'].Value -ne '6.7.3') {
+            choco install innosetup --version=6.7.3 --force --allow-downgrade --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Could not install the pinned Inno Setup compiler.' }
+          }
+          if (!(Test-Path -LiteralPath $compiler)) { throw 'Inno Setup compiler was not found.' }
+          $versionMatch = [regex]::Match((Get-Content -LiteralPath $releaseNotes -Raw), '<a name="(?<version>[0-9]+\.[0-9]+\.[0-9]+)"')
+          if (!$versionMatch.Success -or $versionMatch.Groups['version'].Value -ne '6.7.3') { throw 'The release installer must be compiled with Inno Setup 6.7.3.' }
+          & $compiler /?
+
+      - name: Build application and installer from tag version
+        shell: pwsh
+        run: |
+          python scripts/build_installer.py --version '${{ steps.release.outputs.version }}' --repository $env:REPOSITORY --output-dir dist/installer
+          if ($LASTEXITCODE -ne 0) { throw 'Tagged application/installer build failed.' }
+
+      - name: Verify unattended setup, Apps & Features and uninstall
+        shell: pwsh
+        run: |
+          .\scripts\verify_installer.ps1 -Installer "dist\installer\${{ steps.release.outputs.installer_name }}" -Version '${{ steps.release.outputs.version }}'
+
+      - name: Build and verify Chocolatey package
+        shell: pwsh
+        run: |
+          python scripts/build_chocolatey.py --tag $env:RELEASE_TAG --repository $env:REPOSITORY --installer "dist/installer/${{ steps.release.outputs.installer_name }}" --checksum "dist/installer/${{ steps.release.outputs.installer_name }}.sha256" --output build/chocolatey
+          if ($LASTEXITCODE -ne 0) { throw 'Chocolatey package generation or validation failed.' }
+
+      - name: Generate first-submission WinGet manifests
+        shell: pwsh
+        run: |
+          $release = Get-Content build/release/release.json -Raw | ConvertFrom-Json
+          python scripts/release_support.py winget-bootstrap --tag $env:RELEASE_TAG --repository $env:REPOSITORY --sha256 $release.sha256 --output build/winget-bootstrap
+          if ($LASTEXITCODE -ne 0) { throw 'WinGet bootstrap manifest generation failed.' }
+
+      - name: Upload validated release artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: whisperdesk-release-${{ github.ref_name }}
+          if-no-files-found: error
+          retention-days: 10
+          path: |
+            dist/installer/${{ steps.release.outputs.installer_name }}
+            dist/installer/${{ steps.release.outputs.installer_name }}.sha256
+            build/release/release.json
+            build/chocolatey/whisperdesk.${{ steps.release.outputs.version }}.nupkg
+            build/winget-bootstrap/${{ steps.release.outputs.version }}/*
+
+  publish:
+    name: Publish immutable release and package manager updates
+    needs: build-and-validate
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    timeout-minutes: 45
+    steps:
+      - name: Check out release scripts
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Download validated artifacts
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          name: whisperdesk-release-${{ github.ref_name }}
+          path: release-artifacts
+
+      - name: Install release tools
+        shell: pwsh
+        run: |
+          if (!(Get-Command choco.exe -ErrorAction SilentlyContinue)) { throw 'Chocolatey CLI is not available on the release runner.' }
+          if (!(Get-Command gh.exe -ErrorAction SilentlyContinue)) { throw 'GitHub CLI is not available on the release runner.' }
+
+      - name: Validate publishing credentials before public release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+        run: .\scripts\validate_release_secrets.ps1
+
+      - name: Create or verify GitHub Release and public installer URL
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          .\scripts\publish_github_release.ps1 -ContextPath 'release-artifacts\build\release\release.json' -Installer "release-artifacts\dist\installer\${{ needs.build-and-validate.outputs.installer_name }}" -ChecksumFile "release-artifacts\dist\installer\${{ needs.build-and-validate.outputs.installer_name }}.sha256"
+
+      - name: Submit Chocolatey package
+        shell: pwsh
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        run: |
+          $release = Get-Content 'release-artifacts\build\release\release.json' -Raw | ConvertFrom-Json
+          .\scripts\publish_chocolatey.ps1 -ContextPath 'release-artifacts\build\release\release.json' -Package "release-artifacts\build\chocolatey\whisperdesk.$($release.version).nupkg" -InstallerHash $release.sha256
+
+      - name: Update WinGet package when initial identity is accepted
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+        run: |
+          $release = Get-Content 'release-artifacts\build\release\release.json' -Raw | ConvertFrom-Json
+          .\scripts\publish_winget.ps1 -ContextPath 'release-artifacts\build\release\release.json' -InstallerHash $release.sha256

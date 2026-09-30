@@ -8,6 +8,7 @@ from time import perf_counter
 import numpy as np
 
 from .models import Word
+from .installation import SetupRepairRequired, data_root, installed_preferences, managed_model, managed_runtime
 
 log = logging.getLogger(__name__)
 _dll_handles = []
@@ -16,6 +17,22 @@ _dll_handles = []
 def configure_cuda_paths():
     """Make installed NVIDIA DLLs discoverable, including optional pip wheels."""
     if os.name != "nt":
+        return
+    owned = managed_runtime()
+    strict = bool(getattr(sys, "frozen", False) or os.environ.get("WHISPER_DESK_STRICT_RUNTIME"))
+    if owned:
+        os.environ["PATH"] = str(owned) + os.pathsep + os.environ.get("PATH", "")
+        _dll_handles.append(os.add_dll_directory(str(owned)))
+    if strict:
+        # Native LoadLibrary calls must not find an incidental developer Toolkit.
+        windows = Path(os.environ.get("SystemRoot", "C:/Windows"))
+        os.environ["PATH"] = os.pathsep.join(str(p) for p in (owned, windows / "System32", windows) if p)
+        # CTranslate2's cuBLAS loader explicitly reads CUDA_PATH and calls
+        # SetDllDirectory, overriding PATH/AddDllDirectory. Keep it app-local too.
+        if owned:
+            os.environ["CUDA_PATH"] = str(owned.parent)
+        else:
+            os.environ.pop("CUDA_PATH", None)
         return
     roots = [Path(os.environ.get("CUDA_PATH", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9")) / "bin"]
     roots += [Path(sys.prefix) / "Lib/site-packages/nvidia" / name / "bin"
@@ -47,11 +64,25 @@ class WhisperEngine:
         from faster_whisper.utils import download_model
         import ctranslate2
         started = perf_counter()
+        installed = managed_model() if self.config.model == "turbo" else None
+        if installed:
+            model_path = str(installed)
+        elif (data_root() / "installed.json").exists():
+            raise SetupRepairRequired("The Whisper model is missing or damaged. Run the installer again to repair it.")
+        else:
+            try:
+                model_path = download_model(self.config.model, local_files_only=True)
+            except Exception:
+                model_path = self.config.model  # Source/portable first launch can download.
         try:
-            model_path = download_model(self.config.model, local_files_only=True)
+            wanted = self.config.device == "cuda" or (self.config.device == "auto" and
+                                                       installed_preferences().get("gpu_enabled", True))
+            available = wanted and ctranslate2.get_cuda_device_count()
         except Exception:
-            model_path = self.config.model  # First launch: download to the standard HF cache.
-        preferred = "cuda" if self.config.device != "cpu" and ctranslate2.get_cuda_device_count() else "cpu"
+            log.exception("NVIDIA driver detection failed; using CPU")
+            available = False
+            self.notice = "NVIDIA driver unavailable. Using CPU."
+        preferred = "cuda" if available else "cpu"
         try:
             self.model = WhisperModel(model_path, device=preferred,
                                       compute_type="float16" if preferred == "cuda" else "int8",

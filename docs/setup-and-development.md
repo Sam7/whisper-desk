@@ -149,11 +149,14 @@ On the development RTX 4060 8 GB / PD200X WASAPI input, observed capture latency
 ## Package for Windows
 
 ```powershell
-.\.venv\Scripts\python -m PyInstaller --noconfirm whisper-desk.spec
-.\dist\WhisperDesk\WhisperDesk.exe
+# Example local release build. Normal releases use the tag workflow.
+.\.venv\Scripts\python scripts/build_installer.py --version 0.1.0 --repository Sam7/whisper-desk
+.\build\release\app\WhisperDesk\WhisperDesk.exe
 ```
 
-Distribute the **whole `dist\WhisperDesk` folder**, not just the executable. The folder build avoids one-file extraction on every launch. Python need not be installed on the destination PC. CUDA/cuDNN must be installed separately there; the model downloads on first launch or can be pre-populated in the Hugging Face cache. Models and NVIDIA's runtime are deliberately not bundled.
+For end users, build the [Windows installer](windows-installer.md). It provisions the locked NVIDIA runtime libraries and Turbo model during setup, verifies actual inference and creates a Start menu shortcut. Users do not install Python, the CUDA Toolkit or cuDNN separately. A compatible NVIDIA graphics driver remains required for GPU acceleration.
+
+For portable distribution, include the **whole `build\release\app\WhisperDesk` folder**, not just the executable. The folder build avoids one-file extraction on every launch. Python need not be installed. Packaged builds deliberately exclude incidental NVIDIA SDK DLLs from the build machine and use the installer-managed runtime; without it they can fall back to CPU. Source launches retain external CUDA discovery and first-launch model downloads for development.
 
 The executable embeds the purple microphone icon at 16–256 px, and the app sets the Windows identity `WhisperDesk.Desktop` before creating its UI. To replace an older Python-logo taskbar entry, unpin it, launch `dist\WhisperDesk\WhisperDesk.exe`, and pin that app again. Pin the packaged executable for normal use. Regenerate the shared icon with `scripts/generate_icon.py`; verify the actual EXE's shell icons with `scripts/verify_shell_icon.py` after rebuilding.
 

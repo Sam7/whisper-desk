@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>whisperdesk</id>
+    <version>0.0.0</version>
+    <title>WhisperDesk</title>
+    <authors>DotSam</authors>
+    <owners>DotSam</owners>
+    <summary>Private offline voice transcription powered by Whisper Turbo.</summary>
+    <description>WhisperDesk is a native Windows desktop app for fast local speech-to-text. Audio stays on your computer. Transcription works offline after setup, with NVIDIA GPU acceleration or CPU mode.</description>
+    <projectUrl>https://github.com/placeholder/placeholder</projectUrl>
+    <projectSourceUrl>https://github.com/placeholder/placeholder</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/placeholder/placeholder/issues</bugTrackerUrl>
+    <packageSourceUrl>https://github.com/placeholder/placeholder/tree/main/packaging/chocolatey</packageSourceUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <tags>whisper transcription speech-to-text voice dictation offline privacy windows</tags>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

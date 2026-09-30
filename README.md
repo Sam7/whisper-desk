@@ -1,10 +1,10 @@
-# Whisper Desk — Free, Private Offline Voice Transcription
+# WhisperDesk — Free, Private Offline Voice Transcription
 
 **Turn your voice into text on your own computer. No cloud subscription, no account, no per-minute fees.**
 
-Whisper Desk is a free desktop speech-to-text app for **Windows 11**, powered by **OpenAI Whisper Turbo**. It delivers high-quality local audio transcription in a simple native interface: press Record, speak naturally, watch your words appear, and press Finish. Copy the text into your notes, emails, documents or favourite app.
+WhisperDesk is a free desktop speech-to-text app for **Windows 11**, powered by **OpenAI Whisper Turbo**. It delivers high-quality local audio transcription in a simple native interface: press Record, speak naturally, watch your words appear, and press Finish. Copy the text into your notes, emails, documents or favourite app.
 
-Your audio stays on your computer. After the initial model download, transcription works **offline**, without sending recordings to a cloud transcription service or requiring an OpenAI API key.
+Your audio stays on your computer. After the one-time setup downloads, transcription works **offline**, without sending recordings to a cloud transcription service or requiring an OpenAI API key.
 
 ## Light and dark mode
 
@@ -46,6 +46,20 @@ Record again to add another paragraph. Earlier text stays in the window until yo
 
 ## Get started on Windows 11
 
+The Windows installer handles Python, application dependencies, the Whisper Turbo model and NVIDIA GPU runtime libraries for you:
+
+1. Download **WhisperDesk-<version>-Setup.exe** from [GitHub Releases](https://github.com/Sam7/whisper-desk/releases) after the first tagged release, or install with Winget/Chocolatey when those listings are available. Choose GPU acceleration if you have compatible NVIDIA hardware.
+2. Allow setup to download and verify the transcription files. GPU setup downloads approximately **3.44 GB** in total; CPU setup downloads approximately **1.62 GB**. Installation also needs space for extraction and staging; setup checks this first.
+3. Open **Whisper Desk** from the Start menu and speak. No separate Python, CUDA Toolkit or cuDNN installation is needed for the installed application.
+
+A compatible **NVIDIA graphics driver** is still required for GPU mode. Setup checks actual inference, offers CPU mode and explains driver problems. Windows microphone access must be enabled for desktop apps. Completed downloads are retained for retries; an interrupted individual file starts again.
+
+The release workflow produces a versioned installer, checksum and tested package-manager submissions from each pushed version tag. For local packaging instructions, see the [Windows installer guide](docs/windows-installer.md) and [release guide](docs/releases.md).
+
+The installer has been exercised through download, installation, upgrade, uninstall and reinstall, with offline CUDA transcription tested in both themes. Clean-machine release validation remains pending; see the [verification notes](docs/verification.md) for results and environment limits.
+
+### Run from source
+
 Install **64-bit Python 3.12**, download or clone this repository, then open PowerShell in its folder:
 
 ```powershell
@@ -55,11 +69,11 @@ python -m venv .venv
 .\.venv\Scripts\python -m whisper_desk
 ```
 
-For fast NVIDIA GPU transcription, install **CUDA Toolkit 12** and **cuDNN 9 for CUDA 12**, with a compatible driver. See the [CUDA setup guide](docs/setup-and-development.md#cuda-on-windows) and [faster-whisper GPU requirements](https://github.com/SYSTRAN/faster-whisper#gpu). The badge in the app shows **CUDA** or **CPU**.
+Source launches can use **CUDA Toolkit 12** and **cuDNN 9 for CUDA 12**, with a compatible driver. See the [development CUDA setup guide](docs/setup-and-development.md#cuda-on-windows). The badge in the app shows **CUDA** or **CPU**.
 
 The first launch downloads approximately **1.6 GB** of Whisper Turbo model weights. Once the download is complete and cached, you can transcribe without an internet connection. Allow microphone access for desktop apps in Windows privacy settings.
 
-If you already have a packaged build, launch `WhisperDesk.exe` from its complete folder. To build your own executable, follow the [Windows packaging instructions](docs/setup-and-development.md#package-for-windows). A packaged app does not require Python to be installed.
+If you have a portable packaged build, launch `WhisperDesk.exe` from its complete folder. The [Windows installer](docs/windows-installer.md) is the recommended way to provision its GPU dependencies and model. A packaged app does not require Python to be installed.
 
 ## Does it work on Mac or Linux?
 
@@ -84,6 +98,20 @@ The [CTranslate2 runtime provides Windows, macOS and Linux Python wheels](https:
 ## Setup, testing and development
 
 See the [setup and development guide](docs/setup-and-development.md) for pinned dependencies, CUDA troubleshooting, streaming architecture, automated tests, visual checks and PyInstaller packaging. The [verification notes](docs/verification.md) distinguish actual hardware runs from mocked tests and remaining manual checks.
+
+## Install with a package manager
+
+After the first public package submissions are accepted, install with either Windows package manager:
+
+```powershell
+winget install DotSam.WhisperDesk
+```
+
+```powershell
+choco install whisperdesk
+```
+
+Both packages use the exact versioned GitHub Release installer and verify its SHA-256. Package availability depends on the initial submissions being accepted by Microsoft's WinGet repository and the Chocolatey Community Repository.
 
 Whisper Desk is an independent application using [OpenAI Whisper](https://github.com/openai/whisper) model weights and the [faster-whisper](https://github.com/SYSTRAN/faster-whisper) inference implementation.
 

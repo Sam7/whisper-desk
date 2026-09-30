@@ -9,6 +9,7 @@ import sys
 from .audio import AudioBuffer, Microphone
 from .config import Config
 from .engine import WhisperEngine
+from .installation import SetupRepairRequired
 from .models import Event, State
 from .transcript import Transcript
 
@@ -141,8 +142,9 @@ class SessionService:
                 self.model_ready = True
                 self.emit(Event("backend", (device, notice)))
                 self._state(State.READY)
-        except Exception:
-            self._fail("Could not load Whisper Turbo. Check your connection for the first model download, then restart.")
+        except Exception as exc:
+            self._fail(str(exc) if isinstance(exc, SetupRepairRequired) else
+                       "Could not load Whisper Turbo. Check your connection for the first model download, then restart.")
             return
         while not self._quit.is_set():
             rec = self.recording
