@@ -23,8 +23,17 @@ if ($entry.DisplayName -ne 'WhisperDesk' -or $entry.DisplayVersion -ne $Version 
     throw "Apps & Features metadata mismatch: $($entry.DisplayName) $($entry.DisplayVersion) $($entry.Publisher)"
 }
 $app = Join-Path $env:LOCALAPPDATA 'Programs\WhisperDesk\WhisperDesk.exe'
-$actualVersion = (& $app --version).Trim()
-if ($LASTEXITCODE -ne 0 -or $actualVersion -ne "WhisperDesk $Version") { throw "Executable version mismatch: $actualVersion" }
+$versionOutput = Join-Path $ReportDirectory 'app-version.stdout.txt'
+$versionError = Join-Path $ReportDirectory 'app-version.stderr.txt'
+$versionProcess = Start-Process -FilePath $app -ArgumentList @('--version') -Wait -PassThru `
+    -RedirectStandardOutput $versionOutput -RedirectStandardError $versionError
+$actualVersion = if (Test-Path -LiteralPath $versionOutput) {
+    (Get-Content -LiteralPath $versionOutput -Raw).Trim()
+} else { '' }
+if ($versionProcess.ExitCode -ne 0 -or $actualVersion -ne "WhisperDesk $Version") {
+    $versionErrorText = if (Test-Path -LiteralPath $versionError) { Get-Content -LiteralPath $versionError -Raw } else { '' }
+    throw "Executable version mismatch (exit $($versionProcess.ExitCode)): '$actualVersion'. $versionErrorText"
+}
 $data = Join-Path $env:LOCALAPPDATA 'WhisperDesk'
 $verified = Get-Content (Join-Path $data 'setup-verification.json') -Raw | ConvertFrom-Json
 if ($verified.exit_code -ne 0 -or $verified.device -ne 'cpu') { throw 'CPU setup did not complete actual local Whisper inference.' }

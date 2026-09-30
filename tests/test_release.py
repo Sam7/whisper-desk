@@ -146,6 +146,9 @@ def test_installer_smoke_runner_meets_minimum_windows_build_and_reports_setup_er
     assert "runs-on: windows-2025" in workflow
     assert "MinVersion=10.0.22000" in installer
     assert "Get-Content -LiteralPath $setupLog -Tail 40" in smoke_test
+    assert "Start-Process -FilePath $app" in smoke_test
+    assert "-RedirectStandardOutput $versionOutput -RedirectStandardError $versionError" in smoke_test
+    assert "(& $app --version)" not in smoke_test
 
 
 def test_release_workflow_is_tag_only_least_privilege_and_secrets_are_scoped():
