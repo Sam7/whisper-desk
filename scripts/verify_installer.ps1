@@ -11,7 +11,12 @@ New-Item -ItemType Directory -Path $ReportDirectory -Force | Out-Null
 $setupLog = Join-Path $ReportDirectory 'setup.log'
 $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CPU=1',"/LOG=$setupLog")
 $setup = Start-Process -FilePath $expected -ArgumentList $args -Wait -PassThru
-if ($setup.ExitCode -ne 0) { throw "Unattended installer exited with $($setup.ExitCode). Inspect $setupLog" }
+if ($setup.ExitCode -ne 0) {
+    $diagnostics = if (Test-Path -LiteralPath $setupLog) {
+        (Get-Content -LiteralPath $setupLog -Tail 40) -join [Environment]::NewLine
+    } else { 'No Inno Setup log was created.' }
+    throw "Unattended installer exited with $($setup.ExitCode). Inno Setup log tail:`n$diagnostics"
+}
 $keyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{EF14A980-E239-414E-A6F4-ABAB4AF008F2}_is1'
 $entry = Get-ItemProperty -LiteralPath $keyPath
 if ($entry.DisplayName -ne 'WhisperDesk' -or $entry.DisplayVersion -ne $Version -or $entry.Publisher -ne 'DotSam') {

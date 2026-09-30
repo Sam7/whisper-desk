@@ -139,6 +139,15 @@ def test_inno_app_features_name_publisher_version_and_app_identity_are_stable():
     assert "installer\":\"0.1.0\"" not in script
 
 
+def test_installer_smoke_runner_meets_minimum_windows_build_and_reports_setup_errors():
+    workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+    installer = (ROOT / "packaging/windows/WhisperDesk.iss").read_text(encoding="utf-8")
+    smoke_test = (ROOT / "scripts/verify_installer.ps1").read_text(encoding="utf-8")
+    assert "runs-on: windows-2025" in workflow
+    assert "MinVersion=10.0.22000" in installer
+    assert "Get-Content -LiteralPath $setupLog -Tail 40" in smoke_test
+
+
 def test_release_workflow_is_tag_only_least_privilege_and_secrets_are_scoped():
     workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
     assert "tags:" in workflow and "'v*'" in workflow

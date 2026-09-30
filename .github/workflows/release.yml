@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build-and-validate:
     name: Test and build versioned Windows installer
-    runs-on: windows-2022
+    runs-on: windows-2025
     permissions:
       contents: read
     timeout-minutes: 60
